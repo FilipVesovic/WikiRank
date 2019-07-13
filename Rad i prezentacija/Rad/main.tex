@@ -1,0 +1,640 @@
+\documentclass[12pt, journal, compsoc]{IEEEtran}
+\usepackage{blindtext}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{svg}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{mathtools}
+
+%Za razlomak /
+\usepackage{nicefrac}
+
+%Za promile
+\usepackage{wasysym}
+
+\usepackage{newtxtext,newtxmath,amsmath}
+
+% Za srpski
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{currvita}
+\usepackage[serbian]{babel}
+
+% Bez seckanja reci
+\usepackage[labelsep=period]{caption}
+\tolerance=1
+\emergencystretch=\maxdimen
+\hyphenpenalty=10000
+\hbadness=10000
+
+% Za linkove
+\usepackage{hyperref}
+
+\algnewcommand\algorithmicforeach{\textbf{for each}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \algorithmicdo}
+
+\makeatletter
+\renewcommand{\ALG@name}{Algoritam}
+\makeatother
+
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
+\pgfplotsset{width=8.5cm,height=6cm,compat=newest}
+
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+
+\begin{document}
+\title{PageRank algoritam na Wikipediji}
+
+\author{Filip Vesović 0018/17, Vuk Vuković 0119/17,\\ \IEEEmembership{Projekat iz predmeta Verovatnoća i statistika (13S082VS)\\
+Elektrotehnički fakultet, Univerzitet u Beogradu}
+% <-this % stops a space
+}
+
+% note the % following the last \IEEEmembership and also \thanks - 
+% these prevent an unwanted space from occurring between the last author name
+% and the end of the author line. i.e., if you had this:
+% 
+% \author{....lastname \thanks{...} \thanks{...} }
+%                     ^------------^------------^----Do not want these spaces!
+%
+% a space would be appended to the last name and could cause every name on that
+% line to be shifted left slightly. This is one of those "LaTeX things". For
+% instance, "\textbf{A} \textbf{B}" will typeset as "A B" not "AB". To get
+% "AB" then you have to do: "\textbf{A}\textbf{B}"
+% \thanks is no different in this regard, so shield the last } of each \thanks
+% that ends a line with a % and do not let a space in before the next \thanks.
+% Spaces after \IEEEmembership other than the last one are OK (and needed) as
+% you are supposed to have spaces between the names. For what it is worth,
+% this is a minor point as most people would not even notice if the said evil
+% space somehow managed to creep in.
+
+
+
+% The paper headers
+\markboth{}%
+{}
+% The only time the second header will appear is for the odd numbered pages
+% after the title page when using the twoside option.
+% 
+% *** Note that you probably will NOT want to include the author's ***
+% *** name in the headers of peer review papers.                   ***
+% You can use \ifCLASSOPTIONpeerreview for conditional compilation here if
+% you desire.
+
+
+
+
+% If you want to put a publisher's ID mark on the page you can do it like
+% this:
+%\IEEEpubid{0000--0000/00\$00.00~\copyright~2007 IEEE}
+% Remember, if you use this you must call \IEEEpubidadjcol in the second
+% column for its text to clear the IEEEpubid mark.
+
+
+
+% use for special paper notices
+%\IEEEspecialpapernotice{(Invited Paper)}
+
+
+
+
+% make the title area
+\maketitle
+
+
+\begin{abstract}
+%\boldmath
+PageRank je algoritam koji služi za kvantitativno određivanje važnosti (uticaja) internet stranica. Zasnovan je na Markovskim lancima i modelu nasumičnog korisnika interneta (korisnika koji se nasumično kreće po stranicama klikovima na sadržane linkove). U ovom radu prikazani su teorijska osnova, pregled PageRank algoritma i rezultati algoritma izvršenog na stranicama engleske verzije internet enciklopedije Wikipedije.
+\end{abstract}
+% IEEEtran.cls defaults to using nonbold math in the Abstract.
+% This preserves the distinction between vectors and scalars. However,
+% if the journal you are submitting to favors bold math in the abstract,
+% then you can use LaTeX's standard command \boldmath at the very start
+% of the abstract to achieve this. Many IEEE journals frown on math
+% in the abstract anyway.
+
+
+% For peer review papers, you can put extra information on the cover
+% page as needed:
+% \ifCLASSOPTIONpeerreview
+% \begin{center} \bfseries EDICS Category: 3-BBND \end{center}
+% \fi
+%
+% For peerreview papers, this IEEEtran command inserts a page break and
+% creates the second title. It will be ignored for other modes.
+\IEEEpeerreviewmaketitle
+
+\section{Uvod}
+Još od nastanka prvih internet servisa za pretragu, pa sve do danas, kada najveći internet pretraživač, Google, broji više stotina milijardi indeksiranih stranica, osnovni problem je kako izabrati koje stranice prikazati korisniku za zadatu pretragu. Još jedan od problema predstavlja i kriterijum po kom je potrebno rasporediti prikazane stranice ukoliko je dostupno više rezultata pretrage.
+\par
+Tadašnji studenti doktorskih studija na Univerzitetu Stanford, \textit{Larry Page} i \textit{Sergey Brin} su razvili PageRank algoritam 1996. godine kao deo istraživačkog projekta o internet servisu za pretragu. Glavna ideja je bila da se informacije na internetu rangiraju po kredibilitetu, tj. po bitnosti stranica na kojima se one nalaze. Bitnost jedne stranice zavisi kako od stranica koje nju linkuju, tako i bitnosti tih stranica. Nakon nekoliko godina, ova dva naučnika osnivaju Google, danas najveći i najkorišćeniji servis za pretragu interneta.
+\par
+Čak i dan danas, PageRank algoritam se koristi kao jedan od mnogih kriterijuma na osnovu kojih Google rangira internet stranice. S obzirom na veliku količinu podataka koju je potrebno obraditi, Google ovaj algoritam izvršava neprestano na velikom broju servera. Iz tog razloga, prilikom izrade ovog projekta, odlučili smo se da ovaj algoritam primenimo na znatno manju količinu podataka koju je moguće obraditi u kućnim uslovima - najveću slobodnu enciklopediju, Wikipediju. Ipak, uzeti skup podataka je dovoljan da verno prikaže rezultate PageRank algoritma.
+
+% needed in second column of first page if using \IEEEpubid
+%\IEEEpubidadjcol
+
+% An example of a floating figure using the graphicx package.
+% Note that \label must occur AFTER (or within) \caption.
+% For figures, \caption should occur after the \includegraphics.
+% Note that IEEEtran v1.7 and later has special internal code that
+% is designed to preserve the operation of \label within \caption
+% even when the captionsoff option is in effect. However, because
+% of issues like this, it may be the safest practice to put all your
+% \label just after \caption rather than within \caption{}.
+%
+% Reminder: the "draftcls" or "draftclsnofoot", not "draft", class
+% option should be used if it is desired that the figures are to be
+% displayed while in draft mode.
+%
+%\begin{figure}[!t]
+%\centering
+%\includegraphics[width=2.5in]{myfigure}
+% where an .eps filename suffix will be assumed under latex, 
+% and a .pdf suffix will be assumed for pdflatex; or what has been declared
+% via \DeclareGraphicsExtensions.
+%\caption{Simulation Results}
+%\label{fig_sim}
+%\end{figure}
+
+% Note that IEEE typically puts floats only at the top, even when this
+% results in a large percentage of a column being occupied by floats.
+
+
+% An example of a double column floating figure using two subfigures.
+% (The subfig.sty package must be loaded for this to work.)
+% The subfigure \label commands are set within each subfloat command, the
+% \label for the overall figure must come after \caption.
+% \hfil must be used as a separator to get equal spacing.
+% The subfigure.sty package works much the same way, except \subfigure is
+% used instead of \subfloat.
+%
+%\begin{figure*}[!t]
+%\centerline{\subfloat[Case I]\includegraphics[width=2.5in]{subfigcase1}%
+%\label{fig_first_case}}
+%\hfil
+%\subfloat[Case II]{\includegraphics[width=2.5in]{subfigcase2}%
+%\label{fig_second_case}}}
+%\caption{Simulation results}
+%\label{fig_sim}
+%\end{figure*}
+%
+% Note that often IEEE papers with subfigures do not employ subfigure
+% captions (using the optional argument to \subfloat), but instead will
+% reference/describe all of them (a), (b), etc., within the main caption.
+
+
+% An example of a floating table. Note that, for IEEE style tables, the 
+% \caption command should come BEFORE the table. Table text will default to
+% \footnotesize as IEEE normally uses this smaller font for tables.
+% The \label must come after \caption as always.
+%
+%\begin{table}[!t]
+%% increase table row spacing, adjust to taste
+%\renewcommand{\arraystretch}{1.3}
+% if using array.sty, it might be a good idea to tweak the value of
+% \extrarowheight as needed to properly center the text within the cells
+%\caption{An Example of a Table}
+%\label{table_example}
+%\centering
+%% Some packages, such as MDW tools, offer better commands for making tables
+%% than the plain LaTeX2e tabular which is used here.
+%\begin{tabular}{|c||c|}
+%\hline
+%One & Two\\
+%\hline
+%Three & Four\\
+%\hline
+%\end{tabular}
+%\end{table}
+
+
+% Note that IEEE does not put floats in the very first column - or typically
+% anywhere on the first page for that matter. Also, in-text middle ("here")
+% positioning is not used. Most IEEE journals use top floats exclusively.
+% Note that, LaTeX2e, unlike IEEE journals, places footnotes above bottom
+% floats. This can be corrected via the \fnbelowfloat command of the
+% stfloats package.
+\section{Markovski lanci}
+Slučajni proces je familija slučajnih promenjivih $\{X_t\}_{t \in T}$, gde je $T$ neki beskonačan podskup realnih brojeva. Indeks $t$ se najčešće interpretira kao vreme. Ako je skup $T$ diskretan tada se radi o slučajnom procesu sa diskretnim vremenom. Skup svih mogućih vrednosti slučajnih promenljivih $X_t$ za $t \in T$ zove se skup stanja procesa $X_t$ \textit{(Merkle 2016)}.
+
+Markovski lanac predstavlja slučajni proces sa diskretnim vremenom i konačnim skupom stanja. U svakom Markovskom lancu važi da verovatnoća prelaska iz stanja $X_k$ u stanje $X_{k+1}$ ne zavisi od stanja u kojima je sistem bio u prethodnim trenucima, već isključivo od trenutnog stanja $X_k$ (osobina Markova).
+
+\begin{equation*}
+\begin{aligned}
+P(X_{k+1} = x | X_{1} = x_{1}, X_{2} = x_{2}, ...,  X_{k} = x_{k}) =\\ P(X_{k+1} = x| X_{k} = x_{k})
+\end{aligned}
+\end{equation*}
+
+Na slici \ref{slika_markovchain} je prikazan primer Markovskog lanca sa 3 stanja koja predstavljaju sunčano, oblačno i kišovito vreme u toku jednog sata. Na usmerenim ivicama koje povezuju stanja su zadate verovatnoće za prelazak iz jednog u drugo stanje. Dati primer se može tumačiti na sledeći način: ukoliko je trenutno sunčano vreme, verovatnoća da će u narednom satu vreme biti sunčano je 0.8, oblačno 0.15, a kišovito 0.05. 
+
+\begin{figure}[h]
+\centering{
+\resizebox{80mm}{!}{\input{markov_chain.pdf_tex}}
+\caption{Primer Markovski lanca za vremensku prognozu}
+\label{slika_markovchain}
+}
+\end{figure}
+\section{Iterativni metodi}
+Iterativni metodi u matematici su metodi koji na osnovu početne pretpostavke i zadatog algoritma, iterativno menjaju rešenje. Iterativni metod je konvergentan, ukoliko njegova sekvenca iteracija konvergira za zadate početne uslove.
+
+Iako pomenuti metodi imaju striktnu matematičku pozadinu koja obuhvata dokazivanje konvergencije, to u ovom radu nije obrađeno s obzirom da PageRank predstavlja inženjerski algoritam koji je samim tim zasnovan na intuitivnim i inženjerskim pretpostavkama.
+
+\section{PageRank}
+Ideja PageRank algoritma zasniva se na izračunavanju verovatnoća da se nasumični korisnik pronađe na određenoj stranici posle (beskonačno) mnogo koraka.
+
+PageRank započinje izvršavanje dodeljujući svakoj stranici jednaku početnu verovatnoću za pronalskom slučajnog korisnika na toj stranici. Nakon toga se iterativnim postupkom na osnovu raspodele verovatnoća u trenutku $t = k$ određuje raspodela verovatnoća u narednom trenutku $t = k+1$. Kako ovim postukom nije moguće odrediti krajnje rešenje konvergencije ($t = \infty$), algoritam prekida sa radom kada razlika između dve uzastopne raspodele padne ispod unapred definisane vrednosti.
+
+Bitno je napomenuti da postoje i neiterativni metodi za određivanje rešenja PageRank algoritma, ali s obzirom na njihovu vremensku složenost oni nisu od praktičnog značaja.  
+\newline \newline
+Model Markovskih lanaca koji PageRank koristi je sledeći \textit{(Page et al., 1999)}:
+\begin{enumerate}
+\item
+Svaka stranica predstavlja jedno od mogućih stanja.
+\item
+Sa svake stranice moguće je preći na bilo koju drugu stranicu sa verovatnoćom $\delta$.
+\item
+Preostala verovatnoća $1 - \delta$ je uniformno raspodeljenja na linkove te stranice, tj. verovatnoća da se pređe na stranicu čiji link se nalazi na trenutnoj stranici je $\frac{1-\delta}{L}$, gde $L$ predstavlja ukupan broj linkova na stranici.
+\end{enumerate}
+
+Parameter $\delta$ se još naziva i stepenom odbacivanja (engl. \textit{Damping factor}). Ovaj parametar je neophodan za ispravan rad algoritma s obzirom da bi bez njegovog postojanja rezultat konvergencije bio da stranice koje nemaju izlazne linkove imaju najveći PageRank indeks (ostale stranice bi imale verovatnoću 0, slučajan korisnik nikada ne bi napustio ovakve stranice). Objašnjenje ovog parametra u modelu nasumičnog korisnika interneta je postojanje verovatnoće da korisnik umesto klika na neki od linkova na stranici pređe na drugu stranicu unošenjem adrese stranice direktno.
+ \\
+Smisao PageRank-a kao mere bitnosti stranica na internetu:
+\begin{enumerate}
+\item
+Stranice koje imaju više linkova ka njima teže da imaju veći PageRank. Što više linkova usmerava ka određenoj stranici, to znaci da se više stranica oslanja na nju, tj. smatra je za verodostojnu i bitnu.
+\item
+Stranice koje imaju veći PageRank doprinose značajnije PageRank-u stranica koje linkuju nego one sa manjim. Ako stranicu linkuje neka bitna stranica, to je značajniji pokazatelj da je stranica bitna nego linkovanje od manje bitnih stranica.
+\end{enumerate}
+
+Kao ilustraciju funkcionisanja PageRank algoritma prikazaćemo njegovo izvršavanje na hipotetičkom primeru povezanosti internet stranica katedri na Elektrotehničkom fakultetu (slika \ref{slika_primerpagerank}).
+
+Zbog jednostavnosti, za faktor odbacivanja u ovom primeru uzeto je $\delta = 0$ (jedini prelazi koji su mogući su prelazi dati na slici).
+Početna vrednost verovatnoća je $\{0.2, 0.2, 0.2, 0.2, 0.2\}$. 
+
+U tabeli \ref{iteracije_primer} prikazane su prve 4 iteracije, kao i krajanja iteracija (nakon konvergencije) za pomenuti primer.
+
+Iako je za pretpostaviti da će najbolje rangirana stranica biti stranica Katedre za primenjenu matematiku s obzirom na to da sve ostale stranice linkuju nju, rezultati pokazuju drugačije. Stranica Katedre za računarsku tehniku i informatiku je najbolje rangirana zbog toga što stranica MAT (koja je izuzetno relevantna zbog broja ulaznih linkova) linkuje isključivo nju.
+
+Kako stranica SIS linkuje dve stranice (EL i ETF) sa verovatnoćama $0.2$, gde EL ima tri linka, a ETF četiri linka, verovatnoću stranice SIS u prvoj iteraciji dobijamo po formuli $\nicefrac{0.2}{3} + \nicefrac{0.2}{4} = 0.1167$.
+
+\begin{figure}[h]
+\centering{
+\resizebox{80mm}{!}{\input{primer_kratko.pdf_tex}}
+\caption{Hipotetički primer povezanosti ETF katedri}
+\label{slika_primerpagerank}
+}
+\end{figure}
+
+\begin{table}[]
+\centering
+\begin{tabular}{|l|l|l|l|l|l|l|}
+\hline
+    & ETF & RTI & Matematika  & SIS & Elektronika  \\ \hline
+0   & 0.2000  & 0.2000 &  0.2000  & 0.2000  &  0.2000   \\ \hline
+1   & 0.1667  & 0.3500 &  0.3167  & 0.1167  &  0.0500   \\ \hline
+2   & 0.1917  & 0.4167 &  0.2917  & 0.0583  &  0.0417   \\ \hline
+3   & 0.2222  & 0.3688 &  0.2993  & 0.0618  &  0.0479   \\ \hline
+4   & 0.2003  & 0.3858 &  0.2868  & 0.0715  &  0.0554  \\ \hline
+$\infty$   & 0.2069  & 0.3793 &  0.2931  & 0.0690  &  0.0517 \\ \hline
+\end{tabular}
+\caption{PageRank iteracije za primer povezanosti stranica ETF katedri}
+\label{iteracije_primer}
+\end{table}
+
+\section{Algoritam}
+Pseudokod algoritma implementiranog u ovom radu prikazan je algoritmom \ref{pagerankalg}.
+\begin{algorithm}[H]
+\caption{PageRank algoritam\\
+$\mathcal S$ - skup stranica\\
+$N$ - broj stranica\\
+$\delta$ - stepen odbacivanja\\
+$in(s)$ - skup stranica koje linkuju stranicu $s$\\
+$outCnt(s)$ - broj linkova na stranici $s$\\
+$\varepsilon$ - kriterijum zaustavljanja}
+\label{pagerankalg}
+\begin{algorithmic}[1]
+\Procedure{PageRank}{}
+
+\State $\mathcal P(s) \gets \nicefrac{1}{N}$,  $\forall s \in \mathcal S$
+\Repeat
+\State $\mathcal P'(s) \gets 0$, $\forall s \in \mathcal S$
+\ForEach {$s \in \mathcal S $}
+    \ForEach {$f \in in(s)$}
+        \State $\mathcal P'(s) \gets \mathcal P'(s) + \cfrac{(1 - \delta) \mathcal P(f)}{outCnt(f)}  $
+    \EndFor
+\EndFor
+\State $unused \gets 0$
+\ForEach {$s \in \mathcal S $}
+\If {$outCnt(s) = 0$}
+\State    $unused \gets unused+ \mathcal P(s)$
+\Else
+\State    $unused \gets unused + \delta \mathcal P(s)$
+\EndIf
+\EndFor
+\ForEach {$s \in \mathcal S $}
+\State  $\mathcal P'(s) \gets \mathcal P'(s) + \nicefrac{unused}{N}$
+\EndFor
+\State $\Delta \mathcal P = \sum{|\mathcal P - \mathcal P'|}  $
+\State $\mathcal P \gets \mathcal P'$
+
+\Until {$\Delta \mathcal P > \varepsilon$}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+
+\section{Wikipedia}
+Wikipedia, kao najveća slobodna enclikopedija, dozvoljava preuzimanje celokupnog sadržaja engleske verzije sajta koji sadrži preko 5.5 miliona članaka. Svaki članak se sastoji od naslova, određenih tehničkih podataka i sadržaja. 
+
+Unutar sadržaja članaka nalaze se dva tipa linkova: interni linkovi, koji predstavljaju veze ka drugim člancima Wikipedije, kao i eksterni linkovi koji uglavnom predstavljaju reference ka raznim knjigama, časopisima, naučnim radovima i drugim sajtovima koji predstavljaju izvor informacija. U algoritmu predstavljenim u ovom radu korišćeni su isključivo interni linkovi, dok su svi eksterni linkovi bili odbačeni. Takođe su odbačeni specijalni linkovi koji vode ka kategorijama i šablonskim stranicama, s obzirom da su oni automatski linkovani na većini stranica, a prosečan korisnik ih ne posećuje.
+
+Čitava engleska verzija sajta je dostupna u okviru jedne XML (engl. \textit{Extensible Markup Language}) datoteke. Ovako preuzeta datoteka teži preko 70 GB podataka. Kako bismo iskoristili pomenute podatke, bilo je potrebno obraditi ih na odgovarajući način i izdvojiti samo informacije potrebne za izvršavanje PageRank algoritma. Program za obradu napisan je u programskom jeziku C++. Kod programa za obradu moguće je pronaći na adresi u prilogu.
+
+Svaki članak opisan je na sledeći način:
+\begin{enumerate}
+    \item Naziv članka
+    \item Automatski dodeljen identifikator
+    \item Niz identifikatora članaka koje posmatrani članak linkuje
+\end{enumerate}
+
+S obzirom na količinu podataka, trajanje obrade podataka i izdvajanja potrebnog sadržaja je oko 2.5 časa.
+
+\section{Primena PageRank algortima}
+Izdvajanjem naslova i linkova iz fajla veličine 72 GB dobijeno je oko 2.6 GB podataka nad kojima je rađen PageRank algoritam.
+Primena algoritma izvršena je u 150 iteracija, sa krajnjom greškom od $7 \cdot 10^{-12}$ za šta je bilo potrebno oko 15 minuta. Faktor odbacivanja koji je korišćen je $\delta = 0.1$. Vreme potrebno za računanje jedne iteracije je oko 6.5 sekundi.
+Krajnji rezultat predstavlja sortirana lista imena članaka i njihovih verovatnoća od oko 500 MB podataka.
+
+Sama primena PageRank algoritma nad obrađenim podacima takođe je napisana u programskom jeziku C++. Kod programa za primenu PageRank algoritma moguće je pronaći na adresi u prilogu.
+
+\section{Rezultati i diskusija}
+\section*{Prvih 20 stranica}
+U tabeli \ref{tabelatop20} prikazano je prvih 20 stranica sortiranih opadajuće po PageRank algoritmu.
+
+Primećuje se da ovih 20 stranica pre svega čine države što se objašava time da veliki broj članaka linkuje povezane države (na primer odakle potiče poznata ličnost, kojoj državi pripada grad, lokacija događaja). Takođe se mogu primetiti i dva grada: New York i London. Pomalo iznenađujući rezultat je da su Katolička crkva i fudbal zauzeli  9. i 12. mesto na listi. 
+
+Kako stranica \textit{USA} ima PageRank u vrednosti od $0.00138227$, ovaj rezultat možemo tumačiti da bi za veliki broj nasumičnih korisnika, $1.3\permil$ bio očekivan deo korisnika koji su na stranici \textit{USA}.
+\begin{table}[]
+\large
+\centering
+\begin{tabular}{|l|l|}
+\hline
+1.                 & USA                            \\ \hline
+2.                 & World War II                         \\ \hline
+3.                 & United Kindom                \\ \hline
+4.                 & France                     \\ \hline
+5.                 & Race and Ethnicity in the US \\ \hline
+6.                 & Germany                         \\ \hline
+7.                 & India                \\ \hline
+8.                 & New York City                     \\ \hline
+9.                 & Catholic Church                            \\ \hline
+10.                 & China                         \\ \hline
+11.                 & List of Sovereign States                \\ \hline
+12.                 & Association Footbal                     \\ \hline
+13.                 & Italy                            \\ \hline
+14.                 & Canada                         \\ \hline
+15.                 & Australia                \\ \hline
+16.                 & The New York Times                     \\ \hline
+17.                 & London                            \\ \hline
+18.                 & English Language                         \\ \hline
+19.                 & World War I                \\ \hline
+20.          & Russia                    \\ \hline
+\end{tabular}
+\caption{Prvih 20 stranica po PageRank}
+\label{tabelatop20}
+\end{table}
+
+\section*{Prvih 5 stranica po kategorijama}
+
+\begin{table}[]
+\large
+\centering
+\begin{tabular}{|l|l|}
+\hline
+871.                 & C                            \\ \hline
+1191.                 & Java                         \\ \hline
+1317.                 & C++                \\ \hline
+1903.                 & Python                     \\ \hline
+1946.                 & Javascript \\ \hline
+\end{tabular}
+\caption{Prvih 5 programskih jezika po PageRank}
+\label{tabelaprogramskijezici5}
+\end{table}
+
+\begin{table}[]
+\large
+\centering
+\begin{tabular}{|l|l|}
+\hline
+243.                 & Microsoft                            \\ \hline
+307.                 & Youtube                         \\ \hline
+388.                 & Apple Inc                \\ \hline
+462.                 & Google                     \\ \hline
+488.                 & IBM \\ \hline
+\end{tabular}
+\caption{Prvih 5 tehnoloških kompanija po PageRank}
+\label{tabelatehnoloskih5}
+\end{table}
+
+\begin{table}[]
+\large
+\centering
+\begin{tabular}{|l|l|}
+\hline
+164.                 & Barack Obama                            \\ \hline
+198.                 & Carl Linnaeus \\ \hline
+216.                 & Elizabeth II                \\ \hline
+220.                 & Napoleon                     \\ \hline
+247.                 & George W. Bush \\ \hline
+\end{tabular}
+\caption{Prvih 5 ličnosti po PageRank}
+\label{tabelalicnosti5}
+\end{table}
+
+\begin{table}[]
+\large
+\centering
+\begin{tabular}{|l|l|}
+\hline
+8.                 & New York City                            \\ \hline
+17.                 & London                         \\ \hline
+28.                 & Washington, D.C.                \\ \hline
+30.                 & Paris                     \\ \hline
+49.                 & Los Angeles \\ \hline
+\end{tabular}
+\caption{Prvih 5 gradova po PageRank}
+\label{tabelagradova5}
+\end{table}
+
+\begin{table}[]
+\large
+\centering
+\begin{tabular}{|l|l|}
+\hline
+93.                 & Mathematics                            \\ \hline
+224.                 & Physics                         \\ \hline
+286.                 & Economics                \\ \hline
+317.                 & Linguistics                     \\ \hline
+327.                 & Philosophy \\ \hline
+\end{tabular}
+\caption{Prvih 5 oblasti po PageRank}
+\label{tabelaoblasti5}
+\end{table}
+
+\begin{table}[]
+\large
+\centering
+\begin{tabular}{|l|l|}
+\hline
+12.                 & Association Football                            \\ \hline
+128.                 & Basketball  \\ \hline
+143.  & American Football \\ \hline
+195.                 & Cricket                \\ \hline
+245.                 & Ice Hockey                     \\ \hline
+\end{tabular}
+\caption{Prvih 5 sportova po PageRank}
+\label{tabelasportova5}
+\end{table}
+
+
+
+U tabelama \ref{tabelaprogramskijezici5}, \ref{tabelatehnoloskih5}, \ref{tabelalicnosti5}, \ref{tabelagradova5}, \ref{tabelaoblasti5} i \ref{tabelasportova5} prikazani su po prvih 5 najbolje rangiranih stranica iz različitih kategorija, kao i njihov globalni rang.
+Primetimo da je \textit{Carl Linnaeus} rangiran kao 2. po PageRank indeksu u tabeli poznatih ličnosti. Radi se o švedskom botaničaru koji je uveo nomeklaturu nazivanja organizama. Iako stranice organizama ne linkuju stranicu ovog naučnika, već stranice o pomenutim nomenklaturama, \textit{Carl Linnaeus} je rangiran ovako visoko. To je iz razloga što njegov članak linkuju verodostojne stranice nomenklatura. Sličan ishod desio se u primeru na slici \ref{slika_primerpagerank}.
+
+\section*{Ostali zanimljivi rezultati}
+
+
+\begin{table}[]
+\large
+\centering
+\begin{tabular}{|l|l|}
+\hline
+88.                  & Protein \\ \hline
+127.                 & Moth \\ \hline
+168.                 & Microsoft Windows \\ \hline
+183.                 & Serbia  \\ \hline
+791.                 & Belgrade \\ \hline
+868.                 & SFRY \\ \hline
+12080.               & Nikola Tesla \\ \hline 
+13061.               & Novak Djokovic \\ \hline 
+265825.              & Merkle Tree \\ \hline 
+\end{tabular}
+\caption{Tabela zanimljivih rezultata}
+\label{tabelazanimljivi}
+\end{table}
+U tabeli \ref{tabelazanimljivi} prikazan je globalni rang još nekih članaka koji bi verovatno bili zanimljivi čitaocima.
+
+Sortirana lista prvih 10000 članaka sa izračunatim PageRank indeksima može se pronaći na adresi u prilogu.
+
+\section{Zaključak}
+
+U ovom radu demonstrirana je primena PageRank algoritma na stranicama engleske verzije internet enkciklopedije Wikipedia. Izvrešena je obrada preko 70GB podataka (izdvajanje članaka zajedno sa linkovima koji vode ka ostalim stranicama). Prikazano je prvih 20 članaka raspoređeno po PageRank indeksu, kao i po 5 najbolje rangiranih stranica po određenim kategorijama. Dobijeni rezultati se poklapaju sa očekivanim. Ipak, moguće je primetiti i određene zanimljivosti za koje se ne bi pretpostavilo da budu tako visoko rangirane. Moguća unapređenja ovog projekta podrazumevaju pre svega primenu napisanog programa na još neki skup podataka na kojem bi se mogla izvršiti dalja analiza.
+
+\begin{thebibliography}{9}
+\bibitem{pagerank} 
+Page, L., Brin, S., Motwani, R., Winograd, T., 1999. \textit{The PageRank citation ranking: Bringing order to the web.} Stanford InfoLab.
+
+\bibitem{merkle} 
+Merkle, M., 2016. \textit{Verovatnoća i statistika za inženjere i studente tehnike.} Akademska Misao 2016.
+\end{thebibliography}
+
+
+\section*{Prilog}
+Izvorni kod programa za obradu i primenu PageRank algoritma, kao i lista prvih 10000 članaka sa njihovim verovatnoćama se može pronaći na sledećoj stranici:\\ \href{https://github.com/FilipVesovic/WikiRank}{https://github.com/FilipVesovic/WikiRank} 
+% if have a single appendix:
+%\appendix[Proof of the Zonklar Equations]
+% or
+%\appendix  % for no appendix heading
+% do not use \section anymore after \appendix, only \section*
+% is possibly needed
+
+% use appendices with more than one appendix
+% then use \section to start each appendix
+% you must declare a \section before using any
+% \subsection or using \label (\appendices by itself
+% starts a section numbered zero.)
+%
+
+
+%\appendices
+%\section{Proof of the First Zonklar Equation}
+%Some text for the appendix.
+
+% use section* for acknowledgement
+%\section*{Acknowledgment}
+
+
+%The authors would like to thank...
+
+
+% Can use something like this to put references on a page
+% by themselves when using endfloat and the captionsoff option.
+\ifCLASSOPTIONcaptionsoff
+  \newpage
+\fi
+
+
+
+% trigger a \newpage just before the given reference
+% number - used to balance the columns on the last page
+% adjust value as needed - may need to be readjusted if
+% the document is modified later
+%\IEEEtriggeratref{8}
+% The "triggered" command can be changed if desired:
+%\IEEEtriggercmd{\enlargethispage{-5in}}
+
+% references section
+
+% can use a bibliography generated by BibTeX as a .bbl file
+% BibTeX documentation can be easily obtained at:
+% http://www.ctan.org/tex-archive/biblio/bibtex/contrib/doc/
+% The IEEEtran BibTeX style support page is at:
+% http://www.michaelshell.org/tex/ieeetran/bibtex/
+%\bibliographystyle{IEEEtran}
+% argument is your BibTeX string definitions and bibliography database(s)
+%\bibliography{IEEEabrv,../bib/paper}
+%
+% <OR> manually copy in the resultant .bbl file
+% set second argument of \begin to the number of references
+% (used to reserve space for the reference number labels box)
+%\begin{thebibliography}{1}
+
+%\bibitem{IEEEhowto:kopka}
+%H.~Kopka and P.~W. Daly, \emph{A Guide to \LaTeX}, 3rd~ed.\hskip 1em plus
+%  0.5em minus 0.4em\relax Harlow, England: Addison-Wesley, 1999.
+
+%\end{thebibliography}
+
+% biography section
+% 
+% If you have an EPS/PDF photo (graphicx package needed) extra braces are
+% needed around the contents of the optional argument to biography to prevent
+% the LaTeX parser from getting confused when it sees the complicated
+% \includegraphics command within an optional argument. (You could create
+% your own custom macro containing the \includegraphics command to make things
+% simpler here.)
+%\begin{biography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{mshell}}]{Michael Shell}
+% or if you just want to reserve a space for a photo:
+
+%\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{picture}}]{John Doe}
+%\blindtext
+%\end{IEEEbiography}
+
+% You can push biographies down or up by placing
+% a \vfill before or after them. The appropriate
+% use of \vfill depends on what kind of text is
+% on the last page and whether or not the columns
+% are being equalized.
+
+%\vfill
+
+% Can be used to pull up biographies so that the bottom of the last one
+% is flush with the other column.
+%\enlargethispage{-5in}
+\end{document}
